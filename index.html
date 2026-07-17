@@ -1,0 +1,127 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>아라의 영어 놀이터 🐱</title>
+<link rel="stylesheet" href="style.css" />
+
+<div id="app">
+
+  <!-- 로딩 화면 -->
+  <section id="screen-loading" class="screen active">
+    <div class="cat-mascot big" data-mood="happy" aria-hidden="true"></div>
+    <p class="loading-text">데이터를 불러오는 중이에요...</p>
+  </section>
+
+  <!-- 에러 화면 -->
+  <section id="screen-error" class="screen">
+    <div class="cat-mascot big" data-mood="sad" aria-hidden="true"></div>
+    <h2>앗! 데이터를 못 읽었어요</h2>
+    <p id="error-detail" class="hint"></p>
+    <button class="btn-primary" onclick="location.reload()">다시 시도 🔄</button>
+  </section>
+
+  <!-- 홈 화면 -->
+  <section id="screen-home" class="screen">
+    <div class="topbar">
+      <div class="star-counter">⭐ <span id="home-stars">0</span></div>
+    </div>
+    <div class="cat-mascot" data-mood="happy" aria-hidden="true"></div>
+    <h1 class="title"><span class="title-name">아라의</span>영어 놀이터</h1>
+    <p class="subtitle">무엇을 공부할까요?</p>
+
+    <div class="choice-grid">
+      <button class="choice-card pink" data-cat="words">
+        <span class="emoji">🔤</span>
+        <span class="label">단어</span>
+        <span class="count" id="count-words"></span>
+      </button>
+      <button class="choice-card purple" data-cat="sentences">
+        <span class="emoji">📖</span>
+        <span class="label">문장</span>
+        <span class="count" id="count-sentences"></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 모드 선택 화면 -->
+  <section id="screen-mode" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="home">← 뒤로</button>
+      <div class="star-counter">⭐ <span id="mode-stars">0</span></div>
+    </div>
+    <div class="cat-mascot" data-mood="happy" aria-hidden="true"></div>
+    <h2 id="mode-title" class="title small"></h2>
+    <p class="subtitle">어떻게 할까요?</p>
+
+    <div class="mode-list" id="mode-list"></div>
+  </section>
+
+  <!-- 학습(플래시카드) 화면 -->
+  <section id="screen-learn" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="mode">← 뒤로</button>
+      <div class="progress-pill"><span id="learn-progress"></span></div>
+    </div>
+
+    <div class="flashcard" id="flashcard">
+      <div class="flash-inner">
+        <div class="flash-front">
+          <p class="flash-en" id="flash-en"></p>
+          <button class="btn-sound" id="flash-sound" title="발음 듣기">🔊</button>
+          <p class="tap-hint">카드를 누르면 뜻이 보여요 👆</p>
+        </div>
+        <div class="flash-back">
+          <p class="flash-ko" id="flash-ko"></p>
+          <p class="flash-en-small" id="flash-en-small"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-nav" id="learn-prev">◀</button>
+      <button class="btn-primary" id="learn-next">다음 ▶</button>
+    </div>
+  </section>
+
+  <!-- 퀴즈 화면 -->
+  <section id="screen-quiz" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="mode">← 그만</button>
+      <div class="quiz-progress"><div class="quiz-progress-bar" id="quiz-bar"></div></div>
+      <div class="star-counter small">⭐ <span id="quiz-score">0</span></div>
+    </div>
+
+    <div class="quiz-body">
+      <div class="cat-mascot small" id="quiz-cat" data-mood="happy" aria-hidden="true"></div>
+      <p class="quiz-instruction" id="quiz-instruction"></p>
+      <div class="quiz-prompt" id="quiz-prompt"></div>
+      <button class="btn-sound big" id="quiz-sound" title="발음 듣기">🔊</button>
+      <div class="options" id="quiz-options"></div>
+      <div class="order-area" id="quiz-order"></div>
+      <div class="write-area" id="quiz-write"></div>
+    </div>
+
+    <div class="feedback" id="quiz-feedback"></div>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="screen-result" class="screen">
+    <div class="cat-mascot big" id="result-cat" data-mood="happy" aria-hidden="true"></div>
+    <h2 class="title" id="result-title">잘했어요!</h2>
+    <div class="result-score">
+      <div class="result-stars" id="result-stars"></div>
+      <p id="result-detail"></p>
+    </div>
+    <div class="nav-row">
+      <button class="btn-secondary" id="result-again">다시 하기 🔁</button>
+      <button class="btn-primary" data-go="home">처음으로 🏠</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="confetti-layer" aria-hidden="true"></div>
+
+<script src="lib/xlsx.full.min.js"></script>
+<script src="app.js"></script>

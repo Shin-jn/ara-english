@@ -1,0 +1,11 @@
+# 엑셀이 열려 있을 때 생기는 임시 잠금 파일
+~$*.xlsx
+~$*.xls
+
+# OS 생성 파일
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Netlify CLI 로컬 설정
+.netlify/
