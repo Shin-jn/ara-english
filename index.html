@@ -35,13 +35,35 @@
         <span class="emoji">🔤</span>
         <span class="label">단어</span>
         <span class="count" id="count-words"></span>
+        <span class="mastery" id="mastery-words"></span>
       </button>
       <button class="choice-card purple" data-cat="sentences">
         <span class="emoji">📖</span>
         <span class="label">문장</span>
         <span class="count" id="count-sentences"></span>
+        <span class="mastery" id="mastery-sentences"></span>
       </button>
     </div>
+
+    <button class="btn-book" data-go="book">📚 단어 도감 보기</button>
+  </section>
+
+  <!-- 단어 도감 화면 -->
+  <section id="screen-book" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="home">← 뒤로</button>
+      <div class="star-counter">⭐ <span id="book-stars">0</span></div>
+    </div>
+    <h2 class="title small">📚 단어 도감</h2>
+    <p class="subtitle" id="book-summary"></p>
+
+    <div class="book-legend">
+      <span>🌱 새싹</span><span>🌿 자라는 중</span><span>🌸 마스터</span>
+    </div>
+
+    <div class="book-list" id="book-list"></div>
+
+    <button class="btn-reset" id="book-reset">🗑️ 기록 초기화</button>
   </section>
 
   <!-- 모드 선택 화면 -->
@@ -112,6 +134,7 @@
     <div class="result-score">
       <div class="result-stars" id="result-stars"></div>
       <p id="result-detail"></p>
+      <p class="result-mastered" id="result-mastered"></p>
     </div>
     <div class="nav-row">
       <button class="btn-secondary" id="result-again">다시 하기 🔁</button>

@@ -49,6 +49,67 @@ function updateStarUI(){
   ['home-stars','mode-stars'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=s; });
 }
 
+/* ---------- 숙련도(라이트너 3단계) ---------- */
+/* 저장 키는 '영어 원문'  → 엑셀에 줄을 추가/삭제해도 기록이 유지됨 */
+const PROG_KEY = 'englishPlayground_progress_v1';
+const LEVELS = [
+  { icon:'🌱', name:'새싹',      weight:6 },   // 아직 못 맞힘 → 자주 출제
+  { icon:'🌿', name:'자라는 중', weight:3 },   // 1~2번 연속 정답
+  { icon:'🌸', name:'마스터',    weight:1 },   // 3번 이상 연속 정답 → 가끔만
+];
+
+let PROGRESS = loadProgress();
+function loadProgress(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PROG_KEY));
+    if (p && typeof p === 'object') return { words: p.words||{}, sentences: p.sentences||{} };
+  }catch(e){}
+  return { words:{}, sentences:{} };
+}
+function saveProgress(){
+  try{ localStorage.setItem(PROG_KEY, JSON.stringify(PROGRESS)); }catch(e){}
+}
+function getRec(cat, en){ return (PROGRESS[cat] || {})[en]; }
+function levelOf(rec){
+  if (!rec || !rec.streak) return 0;
+  return rec.streak >= 3 ? 2 : 1;
+}
+function levelOfItem(cat, en){ return levelOf(getRec(cat, en)); }
+
+/* 정답/오답 기록 → 마스터로 승급했는지 반환 */
+function record(cat, en, ok){
+  if (!PROGRESS[cat]) PROGRESS[cat] = {};
+  const r = PROGRESS[cat][en] || { streak:0, correct:0, wrong:0 };
+  const before = levelOf(r);
+  if (ok){ r.streak++; r.correct++; }
+  else   { r.streak = 0; r.wrong++; }   // 틀리면 🌱로 강등
+  PROGRESS[cat][en] = r;
+  saveProgress();
+  const after = levelOf(r);
+  return { before, after, newlyMastered: before < 2 && after === 2 };
+}
+function masteredCount(cat){
+  return DATA[cat].filter(it => levelOfItem(cat, it.en) === 2).length;
+}
+function resetProgress(){
+  PROGRESS = { words:{}, sentences:{} };
+  saveProgress();
+}
+
+/* 숙련도 가중치 랜덤 추출 (중복 없이 n개) — 약한 단어가 더 자주 뽑힘 */
+function weightedSample(items, n, cat){
+  const pool = items.slice();
+  const out = [];
+  while (out.length < n && pool.length){
+    const weights = pool.map(it => LEVELS[levelOfItem(cat, it.en)].weight);
+    const total = weights.reduce((a,b)=>a+b, 0);
+    let r = Math.random() * total, idx = pool.length - 1;
+    for (let i=0;i<pool.length;i++){ r -= weights[i]; if (r <= 0){ idx = i; break; } }
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
 /* ---------- 발음 (Web Speech API) ---------- */
 let voiceReady = false, enVoice = null;
 function initVoices(){
@@ -124,10 +185,53 @@ async function loadData(){
 /* ================= 홈 ================= */
 function goHome(){
   state.cat = null; state.mode = null;
-  document.getElementById('count-words').textContent = DATA.words.length + '개';
-  document.getElementById('count-sentences').textContent = DATA.sentences.length + '개';
+  ['words','sentences'].forEach(cat=>{
+    document.getElementById('count-'+cat).textContent = DATA[cat].length + '개';
+    document.getElementById('mastery-'+cat).textContent =
+      '🌸 ' + masteredCount(cat) + '/' + DATA[cat].length;
+  });
   updateStarUI();
   show('home');
+}
+
+/* ================= 단어 도감 ================= */
+function openBook(){
+  const box = document.getElementById('book-list');
+  box.innerHTML = '';
+  let totalMastered = 0, total = 0;
+
+  [['words','🔤 단어'], ['sentences','📖 문장']].forEach(([cat, label])=>{
+    if (!DATA[cat].length) return;
+    const group = document.createElement('div'); group.className = 'book-group';
+    const h = document.createElement('h3');
+    h.textContent = `${label}  (🌸 ${masteredCount(cat)}/${DATA[cat].length})`;
+    group.appendChild(h);
+
+    const rows = document.createElement('div'); rows.className = 'book-rows';
+    // 약한 것부터 보이도록 정렬
+    const sorted = DATA[cat].slice().sort((a,b)=> levelOfItem(cat,a.en) - levelOfItem(cat,b.en));
+    sorted.forEach(it=>{
+      const lv = levelOfItem(cat, it.en);
+      const rec = getRec(cat, it.en);
+      total++; if (lv === 2) totalMastered++;
+      const row = document.createElement('div');
+      row.className = 'book-row'; row.dataset.lv = lv;
+      row.innerHTML =
+        `<span class="lv" title="${LEVELS[lv].name}">${LEVELS[lv].icon}</span>` +
+        `<span class="en"></span><span class="ko"></span>` +
+        `<span class="cnt">${rec ? '○'+rec.correct+' ✕'+rec.wrong : ''}</span>`;
+      row.querySelector('.en').textContent = it.en;
+      row.querySelector('.ko').textContent = it.ko;
+      rows.appendChild(row);
+    });
+    group.appendChild(rows);
+    box.appendChild(group);
+  });
+
+  document.getElementById('book-summary').textContent =
+    total ? `전체 ${total}개 중 ${totalMastered}개 마스터! 🌸` : '데이터가 없어요';
+  document.getElementById('book-stars').textContent = getStars();
+  show('book');
 }
 
 /* ================= 모드 선택 ================= */
@@ -138,6 +242,7 @@ const MODES = {
     { id:'ko2en',     emoji:'🇰🇷', title:'영어 맞히기', desc:'뜻을 보고 영어 단어를 골라요' },
     { id:'listen',    emoji:'👂', title:'듣고 맞히기', desc:'발음을 듣고 단어를 골라요' },
     { id:'w_write',   emoji:'✏️', title:'단어 쓰기', desc:'뜻을 보고 영어 단어를 직접 써요' },
+    { id:'weak',      emoji:'🔥', title:'약한 단어만', desc:'아직 못 외운 단어만 집중 연습해요' },
   ],
   sentences: [
     { id:'learn',     emoji:'🃏', title:'문장 카드', desc:'문장과 뜻을 발음과 함께 익혀요' },
@@ -145,6 +250,7 @@ const MODES = {
     { id:'s_order',   emoji:'🧩', title:'문장 만들기', desc:'단어를 순서대로 놓아 문장을 완성해요' },
     { id:'s_blank',   emoji:'🔎', title:'빈칸 채우기', desc:'문장의 빈칸에 알맞은 단어를 골라요' },
     { id:'s_write',   emoji:'✍️', title:'문장 쓰기', desc:'뜻을 보고 영어 문장을 직접 써요' },
+    { id:'weak',      emoji:'🔥', title:'약한 문장만', desc:'아직 못 외운 문장만 집중 연습해요' },
   ],
 };
 
@@ -156,12 +262,21 @@ function openMode(cat){
   box.innerHTML = '';
   const enough = list.length >= 1;
   const noChoiceModes = ['learn','w_write','s_write'];
+  const weakCount = list.filter(it => levelOfItem(cat, it.en) < 2).length;
+
   MODES[cat].forEach(m=>{
     const needsChoices = !noChoiceModes.includes(m.id);
     const disabled = !enough || (needsChoices && list.length < 2) || (m.id==='s_order' && !list.some(s=>stripPunct(s.en).split(/\s+/).length>=2));
+    // 약한 단어 모드는 남은 개수를 안내에 표시
+    const desc = (m.id === 'weak')
+      ? (weakCount ? `아직 못 외운 ${weakCount}개만 집중 연습해요` : '전부 마스터했어요! 복습해볼까요? 🌸')
+      : m.desc;
+
     const btn = document.createElement('button');
     btn.className = 'mode-btn';
-    btn.innerHTML = `<span class="m-emoji">${m.emoji}</span><span class="m-text"><span class="m-title">${m.title}</span><span class="m-desc">${m.desc}</span></span>`;
+    btn.innerHTML = `<span class="m-emoji">${m.emoji}</span><span class="m-text"><span class="m-title"></span><span class="m-desc"></span></span>`;
+    btn.querySelector('.m-title').textContent = m.title;
+    btn.querySelector('.m-desc').textContent = desc;
     if (disabled){ btn.style.opacity='.45'; btn.disabled=true; }
     else btn.onclick = ()=>startMode(m.id);
     box.appendChild(btn);
@@ -202,9 +317,24 @@ const QUIZ_LEN = 10; // 최대 문항 수 (데이터가 적으면 그만큼만)
 function startQuiz(mode){
   const list = DATA[state.cat];
   let pool = list.slice();
-  if (mode==='s_order') pool = pool.filter(s=>stripPunct(s.en).split(/\s+/).length>=2);
-  const items = shuffle(pool).slice(0, Math.min(QUIZ_LEN, pool.length));
-  state.quiz = { mode, items, i:0, score:0, answered:false };
+  let renderType = mode;
+  let weakOnly = false;
+
+  // 🔥 약한 단어만: 아직 마스터하지 않은 것만 모아서 기본 유형으로 출제
+  if (mode === 'weak'){
+    renderType = (state.cat === 'words') ? 'en2ko' : 's_mean';
+    weakOnly = true;
+    pool = pool.filter(it => levelOfItem(state.cat, it.en) < 2);
+    if (!pool.length) pool = list.slice();   // 전부 마스터했다면 전체에서 복습
+  }
+
+  if (renderType === 's_order') pool = pool.filter(s => stripPunct(s.en).split(/\s+/).length >= 2);
+
+  const n = Math.min(QUIZ_LEN, pool.length);
+  // 약한 단어만 모드는 이미 걸러졌으니 단순 셔플, 그 외엔 숙련도 가중치 추첨
+  const items = weakOnly ? shuffle(pool).slice(0, n) : weightedSample(pool, n, state.cat);
+
+  state.quiz = { mode: renderType, items, i:0, score:0, answered:false, newlyMastered:[] };
   renderQuestion();
   show('quiz');
 }
@@ -486,11 +616,22 @@ function onCorrect(){
   document.getElementById('quiz-score').textContent = state.quiz.score;
   addStars(1);
   setMood(document.getElementById('quiz-cat'),'celebrate');
+
+  const item = state.quiz.items[state.quiz.i];
+  const res = record(state.cat, item.en, true);
+  if (res.newlyMastered){
+    state.quiz.newlyMastered.push(item.en);
+    flash('🌸 마스터했어요! 대단해요!','good');
+    miniConfetti(30);
+    return;
+  }
   flash(pick(['잘했어요! 🎉','정답이에요! ⭐','최고예요! 💖','멋져요! 🌟']),'good');
   miniConfetti(18);
 }
 function onWrong(){
   setMood(document.getElementById('quiz-cat'),'sad');
+  const item = state.quiz.items[state.quiz.i];
+  record(state.cat, item.en, false);   // 🌱로 강등 → 다시 자주 출제
   flash(pick(['괜찮아요, 다시 해봐요! 💪','아쉬워요! 다음엔 맞힐 거예요 🌈']),'bad');
 }
 function flash(msg, kind){
@@ -516,6 +657,10 @@ function showResult(){
 
   document.getElementById('result-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
   document.getElementById('result-detail').textContent = `${total}문제 중 ${score}개 정답!`;
+
+  const mastered = q.newlyMastered || [];
+  document.getElementById('result-mastered').textContent =
+    mastered.length ? `🌸 새로 마스터했어요: ${mastered.join(', ')}` : '';
   const title = document.getElementById('result-title');
   const cat = document.getElementById('result-cat');
   if (ratio>=0.9){ title.textContent='완벽해요! 🏆'; setMood(cat,'celebrate'); bigConfetti(); }
@@ -549,12 +694,20 @@ function bigConfetti(){ makeConfetti(80); setTimeout(()=>makeConfetti(50),300); 
 function wire(){
   // 홈 카테고리
   document.querySelectorAll('.choice-card').forEach(c=> c.onclick=()=>openMode(c.dataset.cat));
-  // 뒤로가기
+  // 화면 이동
   document.querySelectorAll('[data-go]').forEach(b=> b.onclick=()=>{
     const t=b.dataset.go;
     if (t==='home') goHome();
     else if (t==='mode') openMode(state.cat);
+    else if (t==='book') openBook();
   });
+
+  // 도감: 기록 초기화
+  document.getElementById('book-reset').onclick=()=>{
+    if (!confirm('정말 모든 숙련도 기록을 지울까요?\n(모은 별은 그대로 남아요)')) return;
+    resetProgress();
+    openBook();
+  };
   // 플래시카드
   const card=document.getElementById('flashcard');
   card.onclick=(e)=>{ if(e.target.closest('.btn-sound')) return; card.classList.toggle('flipped'); };
