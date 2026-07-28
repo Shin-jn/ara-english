@@ -9,3 +9,6 @@ desktop.ini
 
 # Netlify CLI 로컬 설정
 .netlify/
+
+# 업로드 스크립트가 남기는 로그
+_push_log.txt

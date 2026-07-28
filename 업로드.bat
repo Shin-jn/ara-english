@@ -52,12 +52,18 @@ if errorlevel 1 (
 )
 
 echo.
-echo GitHub로 올리는 중...
-git push
-if errorlevel 1 (
+echo GitHub로 올리는 중... (잠시 기다려 주세요)
+git push > "%~dp0_push_log.txt" 2>&1
+set "PUSHERR=%errorlevel%"
+type "%~dp0_push_log.txt"
+
+if not "%PUSHERR%"=="0" (
   echo.
-  echo [오류] 업로드에 실패했어요.
-  echo 인터넷 연결을 확인하거나, 위 메시지를 캡처해서 물어보세요.
+  echo [오류] 업로드(push)에 실패했어요.
+  echo 위에 보이는 영어 메시지를 캡처해서 보여주세요.
+  echo 같은 내용이 _push_log.txt 파일에도 저장됐습니다.
+  echo.
+  echo 커밋은 이미 저장돼 있으니, 인터넷 확인 후 다시 실행하면 이어서 올라갑니다.
   echo.
   pause
   exit /b 1
@@ -67,7 +73,7 @@ echo.
 echo ==========================================
 echo   업로드 완료!
 echo   1~2분 뒤 사이트에 자동 반영됩니다.
-echo   https://araenglish.netlify.app/
+echo   https://shin-jn.github.io/ara-english/
 echo ==========================================
 echo.
 pause
