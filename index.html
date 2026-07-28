@@ -25,8 +25,9 @@
   <section id="screen-home" class="screen">
     <div class="topbar">
       <div class="star-counter">⭐ <span id="home-stars">0</span></div>
+      <div class="coin-counter">🪙 <span id="home-coins">0</span></div>
     </div>
-    <div class="cat-mascot" data-mood="happy" aria-hidden="true"></div>
+    <div class="avatar-view home-avatar" id="home-avatar" aria-hidden="true"></div>
     <h1 class="title"><span class="title-name">아라의</span>영어 놀이터</h1>
     <p class="subtitle">무엇을 공부할까요?</p>
 
@@ -45,7 +46,23 @@
       </button>
     </div>
 
-    <button class="btn-book" data-go="book">📚 단어 도감 보기</button>
+    <div class="home-btn-row">
+      <button class="btn-book" data-go="book">📚 단어 도감</button>
+      <button class="btn-book dress" data-go="avatar">🎀 아바타 꾸미기</button>
+    </div>
+  </section>
+
+  <!-- 아바타 꾸미기 화면 -->
+  <section id="screen-avatar" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="home">← 뒤로</button>
+      <div class="coin-counter big">🪙 <span id="avatar-coins">0</span></div>
+    </div>
+
+    <div class="avatar-view preview" id="avatar-preview" aria-hidden="true"></div>
+
+    <div class="cat-tabs" id="cat-tabs"></div>
+    <div class="shop-grid" id="shop-grid"></div>
   </section>
 
   <!-- 단어 도감 화면 -->
@@ -115,7 +132,7 @@
     </div>
 
     <div class="quiz-body">
-      <div class="cat-mascot small" id="quiz-cat" data-mood="happy" aria-hidden="true"></div>
+      <div class="avatar-view quiz-face" id="quiz-avatar" aria-hidden="true"></div>
       <p class="quiz-instruction" id="quiz-instruction"></p>
       <div class="quiz-prompt" id="quiz-prompt"></div>
       <button class="btn-sound big" id="quiz-sound" title="발음 듣기">🔊</button>
@@ -147,4 +164,5 @@
 <div id="confetti-layer" aria-hidden="true"></div>
 
 <script src="lib/xlsx.full.min.js"></script>
+<script src="avatar.js"></script>
 <script src="app.js"></script>

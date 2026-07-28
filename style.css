@@ -144,6 +144,40 @@ body{
 
 .choice-card .mastery{ font-size:16px; opacity:.95; background:rgba(255,255,255,.3); padding:3px 14px; border-radius:999px; }
 
+/* ===== 코인 ===== */
+.coin-counter{ background:#fff; border-radius:999px; padding:8px 18px; font-size:22px; box-shadow:0 4px 0 rgba(200,170,90,.25); font-family:'Baloo 2'; color:#c99a2e; }
+.coin-counter.big{ font-size:24px; }
+.coin-counter.shake{ animation:shake .4s; }
+
+/* ===== 아바타 ===== */
+.avatar-view{ width:170px; height:204px; margin:6px auto; }
+.avatar-view svg{ display:block; border-radius:22px; box-shadow:var(--shadow); }
+.home-avatar{ width:150px; height:180px; animation:bob 2.8s ease-in-out infinite; }
+.avatar-view.preview{ width:180px; height:216px; margin:8px auto 14px; }
+.avatar-view.quiz-face{ width:86px; height:103px; margin:0 auto 4px; }
+.shop-grid{ padding-bottom:10px; }
+.cat-tabs{ overflow-x:auto; }
+
+.home-btn-row{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:22px; }
+.btn-book.dress{ color:var(--pink); }
+
+.cat-tabs{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; width:100%; max-width:600px; margin-bottom:14px; }
+.cat-tab{ border:none; cursor:pointer; font-family:'Jua'; font-size:18px; color:var(--purple); background:#fff; padding:9px 16px; border-radius:999px; box-shadow:0 3px 0 rgba(180,140,170,.18); }
+.cat-tab.active{ background:linear-gradient(160deg,#ff9ec4,#ff6fa5); color:#fff; }
+
+.shop-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; max-width:600px; }
+.shop-item{ border:none; cursor:pointer; background:#fff; border-radius:18px; padding:10px 8px 12px; box-shadow:var(--shadow); display:flex; flex-direction:column; align-items:center; gap:6px; border:3px solid transparent; }
+.shop-item:active{ transform:translateY(3px); }
+.shop-item.equipped{ border-color:var(--pink); background:#fff2f8; }
+.shop-item .thumb{ width:78px; height:94px; overflow:hidden; border-radius:12px; }
+.shop-item .thumb svg{ box-shadow:none; }
+.shop-item .nm{ font-family:'Jua'; font-size:15px; color:var(--ink); }
+.shop-item .tag{ font-family:'Baloo 2'; font-weight:700; font-size:14px; padding:3px 12px; border-radius:999px; }
+.shop-item .tag.on{ background:var(--pink); color:#fff; }
+.shop-item .tag.own{ background:var(--purple-soft); color:var(--purple); }
+.shop-item .tag.buy{ background:#fff3cf; color:#c99a2e; }
+.shop-item.locked .thumb{ opacity:.75; }
+
 /* ===== 단어 도감 ===== */
 .btn-book{
   margin-top:24px; border:none; cursor:pointer; font-family:'Jua'; font-size:21px;

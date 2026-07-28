@@ -49,6 +49,112 @@ function updateStarUI(){
   ['home-stars','mode-stars'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=s; });
 }
 
+/* ---------- 코인(꾸미기 재화) ---------- */
+const COIN_KEY = 'englishPlayground_coins';
+function getCoins(){ return parseInt(localStorage.getItem(COIN_KEY)||'0',10) || 0; }
+function setCoins(n){ localStorage.setItem(COIN_KEY, String(Math.max(0, n))); updateCoinUI(); }
+function addCoins(n){ setCoins(getCoins()+n); }
+function updateCoinUI(){
+  const c = getCoins();
+  ['home-coins','avatar-coins'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=c; });
+}
+
+/* ================= 아바타 상태 (아트/카탈로그는 avatar.js) ================= */
+const AVATAR_KEY = 'englishPlayground_avatar_v1';
+
+let AVATAR = loadAvatar();
+function loadAvatar(){
+  const owned = [];
+  CAT_ORDER.forEach(cat=> WARDROBE[cat].items.forEach(it=>{ if (it.price===0) owned.push(it.id); }));
+  try{
+    const a = JSON.parse(localStorage.getItem(AVATAR_KEY));
+    if (a && a.equipped){
+      // 기본(무료) 아이템은 항상 소유 상태로 보정
+      const set = new Set([...(a.owned||[]), ...owned]);
+      return { owned:[...set], equipped: Object.assign({}, DEFAULT_EQUIP, a.equipped) };
+    }
+  }catch(e){}
+  return { owned, equipped: Object.assign({}, DEFAULT_EQUIP) };
+}
+function saveAvatar(){ try{ localStorage.setItem(AVATAR_KEY, JSON.stringify(AVATAR)); }catch(e){} }
+function isOwned(id){ return id==='none' || AVATAR.owned.includes(id); }
+
+function renderAvatarInto(el, mood){ if (el) el.innerHTML = avatarSVG(AVATAR.equipped, mood); }
+function refreshAvatars(){
+  renderAvatarInto(document.getElementById('home-avatar'));
+  renderAvatarInto(document.getElementById('avatar-preview'));
+}
+/* 퀴즈 화면 아바타 표정: happy | celebrate | sad */
+function setQuizFace(mood){
+  renderAvatarInto(document.getElementById('quiz-avatar'), mood);
+}
+
+/* --- 꾸미기 화면 --- */
+let shopCat = 'hair';
+function openAvatar(){
+  updateCoinUI();
+  refreshAvatars();
+  renderTabs();
+  renderShop();
+  show('avatar');
+}
+function renderTabs(){
+  const box = document.getElementById('cat-tabs');
+  box.innerHTML = '';
+  CAT_ORDER.forEach(cat=>{
+    const b = document.createElement('button');
+    b.className = 'cat-tab' + (cat===shopCat ? ' active' : '');
+    b.textContent = WARDROBE[cat].label;
+    b.onclick = ()=>{ shopCat = cat; renderTabs(); renderShop(); };
+    box.appendChild(b);
+  });
+}
+function renderShop(){
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = '';
+  WARDROBE[shopCat].items.forEach(it=>{
+    const owned = isOwned(it.id);
+    const equipped = AVATAR.equipped[shopCat] === it.id;
+    const card = document.createElement('button');
+    card.className = 'shop-item' + (equipped ? ' equipped' : '') + (owned ? '' : ' locked');
+    // 이 아이템을 적용한 미리보기
+    const preview = avatarSVG(Object.assign({}, AVATAR.equipped, { [shopCat]: it.id }));
+    const tag = equipped ? '<span class="tag on">착용중 ✓</span>'
+              : owned    ? '<span class="tag own">착용하기</span>'
+              :            `<span class="tag buy">🪙 ${it.price}</span>`;
+    card.innerHTML = `<span class="thumb">${preview}</span><span class="nm"></span>${tag}`;
+    card.querySelector('.nm').textContent = itemName(shopCat, it.id);
+    card.onclick = ()=>onShopTap(shopCat, it, owned, equipped);
+    grid.appendChild(card);
+  });
+}
+function onShopTap(cat, it, owned, equipped){
+  if (equipped) return;
+  if (owned){
+    AVATAR.equipped[cat] = it.id; saveAvatar();
+    refreshAvatars(); renderShop();
+    return;
+  }
+  // 구매
+  if (getCoins() < it.price){
+    flashCoinShort(); return;
+  }
+  if (!confirm(`'${itemName(cat, it.id)}'을(를) 🪙${it.price} 코인에 살까요?`)) return;
+  addCoins(-it.price);
+  AVATAR.owned.push(it.id);
+  AVATAR.equipped[cat] = it.id;
+  saveAvatar();
+  refreshAvatars(); renderShop();
+  bigConfetti();
+}
+function flashCoinShort(){
+  const el = document.getElementById('avatar-coins');
+  if (!el) return;
+  const p = el.parentElement;
+  p.classList.remove('shake'); void p.offsetWidth; p.classList.add('shake');
+  alert('코인이 모자라요! 퀴즈를 더 풀어서 코인을 모아요 🪙');
+}
+
 /* ---------- 숙련도(라이트너 3단계) ---------- */
 /* 저장 키는 '영어 원문'  → 엑셀에 줄을 추가/삭제해도 기록이 유지됨 */
 const PROG_KEY = 'englishPlayground_progress_v1';
@@ -191,6 +297,8 @@ function goHome(){
       '🌸 ' + masteredCount(cat) + '/' + DATA[cat].length;
   });
   updateStarUI();
+  updateCoinUI();
+  refreshAvatars();
   show('home');
 }
 
@@ -350,7 +458,7 @@ function renderQuestion(){
   document.getElementById('quiz-score').textContent = q.score;
   document.getElementById('quiz-feedback').textContent = '';
   document.getElementById('quiz-feedback').className = 'feedback';
-  setMood(document.getElementById('quiz-cat'),'happy');
+  setQuizFace('happy');
 
   const promptEl = document.getElementById('quiz-prompt');
   const optionsEl = document.getElementById('quiz-options');
@@ -615,13 +723,15 @@ function onCorrect(){
   state.quiz.score++;
   document.getElementById('quiz-score').textContent = state.quiz.score;
   addStars(1);
-  setMood(document.getElementById('quiz-cat'),'celebrate');
+  addCoins(1);                         // 정답마다 코인 1개
+  setQuizFace('celebrate');
 
   const item = state.quiz.items[state.quiz.i];
   const res = record(state.cat, item.en, true);
   if (res.newlyMastered){
     state.quiz.newlyMastered.push(item.en);
-    flash('🌸 마스터했어요! 대단해요!','good');
+    addCoins(5);                       // 새로 마스터 보너스
+    flash('🌸 마스터! +🪙5','good');
     miniConfetti(30);
     return;
   }
@@ -629,7 +739,7 @@ function onCorrect(){
   miniConfetti(18);
 }
 function onWrong(){
-  setMood(document.getElementById('quiz-cat'),'sad');
+  setQuizFace('sad');
   const item = state.quiz.items[state.quiz.i];
   record(state.cat, item.en, false);   // 🌱로 강등 → 다시 자주 출제
   flash(pick(['괜찮아요, 다시 해봐요! 💪','아쉬워요! 다음엔 맞힐 거예요 🌈']),'bad');
@@ -658,6 +768,7 @@ function showResult(){
   document.getElementById('result-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
   document.getElementById('result-detail').textContent = `${total}문제 중 ${score}개 정답!`;
 
+  addCoins(3);   // 퀴즈 완료 보너스
   const mastered = q.newlyMastered || [];
   document.getElementById('result-mastered').textContent =
     mastered.length ? `🌸 새로 마스터했어요: ${mastered.join(', ')}` : '';
@@ -700,6 +811,7 @@ function wire(){
     if (t==='home') goHome();
     else if (t==='mode') openMode(state.cat);
     else if (t==='book') openBook();
+    else if (t==='avatar') openAvatar();
   });
 
   // 도감: 기록 초기화
