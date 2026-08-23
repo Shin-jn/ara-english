@@ -332,6 +332,19 @@ body{
 .feedback.good{ color:var(--good); }
 .feedback.bad{ color:var(--bad); }
 
+/* ===== 오답 해설 ===== */
+.quiz-explain{ display:none; width:100%; max-width:560px; margin:10px auto 0; background:#fff;
+  border-radius:20px; padding:16px 20px; box-shadow:var(--shadow); border:3px solid var(--pink-soft); text-align:center; }
+.quiz-explain.show{ display:block; animation:pop .3s ease; }
+.ex-line{ font-size:22px; font-family:'Jua'; margin:3px 0; word-break:break-word; }
+.ex-line.wrong{ color:#e0648a; }
+.ex-line.wrong b{ font-family:'Baloo 2'; }
+.ex-line.right{ color:var(--good); }
+.ex-line.right b{ font-family:'Baloo 2'; font-size:27px; }
+.ex-mean{ font-size:20px; color:var(--purple); margin-top:5px; }
+.quiz-next{ display:none; margin:16px auto 0; }
+.quiz-next.show{ display:inline-block; animation:pop .3s ease; }
+
 .result-score{ background:#fff; border-radius:28px; padding:24px 34px; box-shadow:var(--shadow); margin:6px 0 22px; }
 .result-stars{ font-size:46px; letter-spacing:6px; }
 #result-detail{ font-size:24px; color:var(--purple); margin:10px 0 0; }

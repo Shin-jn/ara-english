@@ -458,6 +458,7 @@ function renderQuestion(){
   document.getElementById('quiz-score').textContent = q.score;
   document.getElementById('quiz-feedback').textContent = '';
   document.getElementById('quiz-feedback').className = 'feedback';
+  clearExplain();
   setQuizFace('happy');
 
   const promptEl = document.getElementById('quiz-prompt');
@@ -620,16 +621,13 @@ function renderWrite(item, isSentence){
     input.disabled = true; hintBtn.disabled = true;
     const ok = (val === normWrite(answer));
     if (ok){
-      input.classList.add('correct'); speak(answer); onCorrect();
+      input.classList.add('correct'); speak(answer); onCorrect(); setTimeout(nextQuestion, 1200);
     } else {
       input.classList.add('wrong'); onWrong();
       revealed = totalLetters; draw();               // 정답 글자 모두 보여주기
-      const ans = document.createElement('div'); ans.className = 'write-answer';
-      ans.innerHTML = '정답은 <b>' + answer + '</b> 예요';
-      area.appendChild(ans);
       speak(answer);
+      showExplain(input.value.trim());               // 내가 쓴 답 vs 정답 — 자동으로 안 넘어감
     }
-    setTimeout(nextQuestion, ok ? 1200 : 2600);
   };
   checkBtn.onclick = check;
   input.addEventListener('keydown', e=>{ if (e.key === 'Enter') check(); });
@@ -694,14 +692,15 @@ function renderOrder(item){
     if (placed.length < answerWords.length){ flash('단어를 모두 놓아요!','bad',false); return; }
     const ok = placed.join(' ') === answerWords.join(' ');
     state.quiz.answered = true;
-    if (ok){ speak(item.en); onCorrect(); }
+    if (ok){ speak(item.en); onCorrect(); setTimeout(nextQuestion, 1200); }
     else {
       onWrong();
       // 정답 문장 보여주기
       slots.innerHTML='';
       answerWords.forEach(w=>{ const c=document.createElement('button'); c.className='word-chip'; c.textContent=w; c.style.background='var(--good)'; c.style.boxShadow='0 4px 0 #3fae70'; slots.appendChild(c); });
+      speak(item.en);
+      showExplain(placed.join(' '));   // 내가 놓은 순서 vs 정답 — 자동으로 안 넘어감
     }
-    setTimeout(nextQuestion, ok?1200:2100);
   };
 
   orderEl.appendChild(slots); orderEl.appendChild(bank); orderEl.appendChild(checkWrap);
@@ -714,9 +713,8 @@ function handleAnswer(ok, btn, optionsEl, correct){
     b.classList.add('disabled');
     if (b.textContent===correct) b.classList.add('correct');
   });
-  if (ok){ btn.classList.add('correct'); onCorrect(); }
-  else { btn.classList.add('wrong'); onWrong(); }
-  setTimeout(nextQuestion, ok?1100:1900);
+  if (ok){ btn.classList.add('correct'); onCorrect(); setTimeout(nextQuestion, 1100); }
+  else { btn.classList.add('wrong'); onWrong(); showExplain(btn.textContent); }  // 오답: 자동으로 안 넘어감
 }
 
 function onCorrect(){
@@ -749,6 +747,33 @@ function flash(msg, kind){
   f.textContent=msg; f.className='feedback '+kind;
 }
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+/* 오답 해설: 내가 고른 답 ✗ / 정답 ✓ / 뜻 을 보여주고 '다음' 버튼 노출 */
+function showExplain(picked){
+  const item = state.quiz.items[state.quiz.i];
+  const el = document.getElementById('quiz-explain');
+  el.innerHTML = '';
+  if (picked != null && String(picked).trim() !== ''){
+    const w = document.createElement('div'); w.className = 'ex-line wrong';
+    const b = document.createElement('b'); b.textContent = picked;
+    w.append('내가 고른 답: ', b, ' ✗');
+    el.appendChild(w);
+  }
+  const r = document.createElement('div'); r.className = 'ex-line right';
+  const rb = document.createElement('b'); rb.textContent = item.en;
+  r.append('정답: ', rb, ' ✓');
+  el.appendChild(r);
+  const m = document.createElement('div'); m.className = 'ex-mean';
+  m.textContent = '뜻: ' + item.ko;
+  el.appendChild(m);
+  el.classList.add('show');
+  document.getElementById('quiz-next').classList.add('show');
+}
+function clearExplain(){
+  const el = document.getElementById('quiz-explain');
+  el.classList.remove('show'); el.innerHTML = '';
+  document.getElementById('quiz-next').classList.remove('show');
+}
 
 function nextQuestion(){
   const q=state.quiz;
@@ -813,6 +838,9 @@ function wire(){
     else if (t==='book') openBook();
     else if (t==='avatar') openAvatar();
   });
+
+  // 오답 해설 후 '다음' 버튼
+  document.getElementById('quiz-next').onclick=()=>nextQuestion();
 
   // 도감: 기록 초기화
   document.getElementById('book-reset').onclick=()=>{
