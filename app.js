@@ -345,18 +345,18 @@ function openBook(){
 /* ================= 모드 선택 ================= */
 const MODES = {
   words: [
-    { id:'learn',     emoji:'🃏', title:'낱말 카드', desc:'카드를 넘기며 단어와 뜻을 익혀요' },
+    { id:'learn',     emoji:'🃏', title:'낱말 카드', desc:'카드를 넘기며 단어와 뜻을 익혀요', hidden:true },
     { id:'en2ko',     emoji:'🔤', title:'뜻 맞히기', desc:'영어 단어를 보고 뜻을 골라요' },
     { id:'ko2en',     emoji:'🇰🇷', title:'영어 맞히기', desc:'뜻을 보고 영어 단어를 골라요' },
-    { id:'listen',    emoji:'👂', title:'듣고 맞히기', desc:'발음을 듣고 단어를 골라요' },
+    { id:'listen',    emoji:'👂', title:'듣고 맞히기', desc:'발음을 듣고 단어를 골라요', hidden:true },
     { id:'w_write',   emoji:'✏️', title:'단어 쓰기', desc:'뜻을 보고 영어 단어를 직접 써요' },
     { id:'weak',      emoji:'🔥', title:'약한 단어만', desc:'아직 못 외운 단어만 집중 연습해요' },
   ],
   sentences: [
-    { id:'learn',     emoji:'🃏', title:'문장 카드', desc:'문장과 뜻을 발음과 함께 익혀요' },
+    { id:'learn',     emoji:'🃏', title:'문장 카드', desc:'문장과 뜻을 발음과 함께 익혀요', hidden:true },
     { id:'s_mean',    emoji:'📖', title:'뜻 맞히기', desc:'영어 문장을 보고 뜻을 골라요' },
     { id:'s_order',   emoji:'🧩', title:'문장 만들기', desc:'단어를 순서대로 놓아 문장을 완성해요' },
-    { id:'s_blank',   emoji:'🔎', title:'빈칸 채우기', desc:'문장의 빈칸에 알맞은 단어를 골라요' },
+    { id:'s_blank',   emoji:'🔎', title:'빈칸 채우기', desc:'문장의 빈칸에 알맞은 단어를 골라요', hidden:true },
     { id:'s_write',   emoji:'✍️', title:'문장 쓰기', desc:'뜻을 보고 영어 문장을 직접 써요' },
     { id:'weak',      emoji:'🔥', title:'약한 문장만', desc:'아직 못 외운 문장만 집중 연습해요' },
   ],
@@ -373,6 +373,7 @@ function openMode(cat){
   const weakCount = list.filter(it => levelOfItem(cat, it.en) < 2).length;
 
   MODES[cat].forEach(m=>{
+    if (m.hidden) return;   // 숨김 처리된 모드는 표시하지 않음
     const needsChoices = !noChoiceModes.includes(m.id);
     const disabled = !enough || (needsChoices && list.length < 2) || (m.id==='s_order' && !list.some(s=>stripPunct(s.en).split(/\s+/).length>=2));
     // 약한 단어 모드는 남은 개수를 안내에 표시
