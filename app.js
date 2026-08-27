@@ -769,7 +769,7 @@ function renderWrite(item, isSentence){
   area.innerHTML = '';
   const answer = item.en;
 
-  // 글자 수 힌트 (밑줄), 💡 누르면 앞에서부터 한 글자씩 공개
+  // 글자 수 표시(밑줄). 틀렸을 때만 정답 글자를 보여주는 용도로도 씀
   const hint = document.createElement('div'); hint.className = 'write-hint';
   let revealed = 0;
   const draw = ()=>{
@@ -792,23 +792,17 @@ function renderWrite(item, isSentence){
   input.placeholder = isSentence ? '여기에 영어 문장을 써요' : '여기에 영어로 써요';
 
   const btns = document.createElement('div'); btns.className = 'write-buttons';
-  const hintBtn = document.createElement('button'); hintBtn.className = 'btn-hint'; hintBtn.textContent = '💡 힌트';
   const checkBtn = document.createElement('button'); checkBtn.className = 'btn-primary'; checkBtn.textContent = '확인 ✅';
-  btns.appendChild(hintBtn); btns.appendChild(checkBtn);
+  btns.appendChild(checkBtn);
 
   const totalLetters = answer.replace(/[^A-Za-z]/g,'').length;
-  hintBtn.onclick = ()=>{
-    if (state.quiz.answered) return;
-    if (revealed < totalLetters){ revealed++; draw(); }
-    input.focus();
-  };
 
   const check = ()=>{
     if (state.quiz.answered) return;
     const val = normWrite(input.value);
     if (!val){ flash('먼저 답을 써 보세요!','bad'); return; }
     state.quiz.answered = true;
-    input.disabled = true; hintBtn.disabled = true;
+    input.disabled = true;
     const ok = (val === normWrite(answer));
     if (ok){
       input.classList.add('correct'); speak(answer); onCorrect(); setTimeout(nextQuestion, 1200);

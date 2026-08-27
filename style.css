@@ -394,8 +394,6 @@ body{
 .write-input.correct{ border-color:var(--good); background:#f0fff6; }
 .write-input.wrong{ border-color:var(--bad); background:#fff1f1; }
 .write-buttons{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center; }
-.btn-hint{ border:none; cursor:pointer; font-family:'Jua'; font-size:20px; background:var(--yellow); color:#8a6d2f; padding:14px 22px; border-radius:999px; box-shadow:0 4px 0 rgba(180,150,80,.35); }
-.btn-hint:active{ transform:translateY(3px); box-shadow:none; }
 .write-answer{ font-family:'Jua'; font-size:24px; color:var(--good); }
 .write-answer b{ font-family:'Baloo 2'; letter-spacing:1px; }
 
