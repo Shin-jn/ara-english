@@ -346,9 +346,10 @@ function openBook(){
 /* ================= 🎁 이벤트 도전 ================= */
 /* 단어를 '직접 쓰기'로 맞혀서 상품을 받는 미션.
    - 출제 단어는 고정(seed 기반 + 처음 시작할 때 저장) → 다음날도 같은 단어
-   - 진행상황 자동 저장 → 중간에 그만둬도 이어서
+   - ⚡ 한 자리에서 전부 맞혀야 성공. 하나라도 틀리면 처음부터 (이어하기 없음)
+   - 최고 기록만 저장해 다시 도전할 의욕을 줌
    - 한 번 완료한 미션은 다시 못 함                                */
-const EVENT_KEY = 'englishPlayground_event_v1';
+const EVENT_KEY = 'englishPlayground_event_v2';
 const MISSIONS = [
   { id:'m30',  count:30, seed:30303, ico:'🎮', cls:'m1',
     prize:'게임 설치',           goal:'단어 30개를 영어로 쓰기' },
@@ -368,7 +369,8 @@ function loadEvents(){
 }
 function saveEvents(){ try{ localStorage.setItem(EVENT_KEY, JSON.stringify(EVENTS)); }catch(e){} }
 function ensureEvent(id){
-  if (!EVENTS[id]) EVENTS[id] = { words:null, solved:[], completed:false, date:null };
+  if (!EVENTS[id]) EVENTS[id] = { words:null, best:0, completed:false, date:null };
+  if (typeof EVENTS[id].best !== 'number') EVENTS[id].best = 0;
   return EVENTS[id];
 }
 
@@ -399,10 +401,10 @@ function missionItems(id){
   return src.map(en => DATA.words.find(w => w.en === en)).filter(Boolean);
 }
 function missionTotal(id){ return missionItems(id).length; }
+/* 이번 판에서 맞힌 개수 (저장되지 않음 — 나가면 0부터 다시) */
 function missionSolved(id){
-  const rec = ensureEvent(id);
-  const exist = new Set(missionItems(id).map(w=>w.en));
-  return rec.solved.filter(en => exist.has(en)).length;
+  const q = state.quiz;
+  return (q && q.mission === id) ? (q.msDone || 0) : 0;
 }
 
 /* --- 이벤트 화면 --- */
@@ -414,8 +416,8 @@ function openEvent(){
   MISSIONS.forEach(m=>{
     const rec = ensureEvent(m.id);
     const total = missionTotal(m.id);
-    const done  = missionSolved(m.id);
-    const pct   = total ? Math.round(done/total*100) : 0;
+    const best  = Math.min(rec.best || 0, total);
+    const pct   = total ? Math.round(best/total*100) : 0;
 
     const card = document.createElement('button');
     card.className = 'mission-card ' + m.cls + (rec.completed ? ' done' : '');
@@ -428,13 +430,14 @@ function openEvent(){
          <span class="m-num"></span>
          <span class="m-cta"></span>
        </span>`;
-    card.querySelector('.m-goal').textContent  = m.goal;
+    card.querySelector('.m-goal').textContent  = m.goal + ' (한 번에!)';
     card.querySelector('.m-prize').textContent = '🎁 ' + m.prize;
     card.querySelector('.mission-bar > div').style.width = pct + '%';
-    card.querySelector('.m-num').textContent   = `${done} / ${total}  (${pct}%)`;
+    card.querySelector('.m-num').textContent   =
+      rec.completed ? `${total} / ${total} 완주!` : `최고 기록 ${best} / ${total}`;
     const cta = card.querySelector('.m-cta');
     if (rec.completed)      cta.textContent = `🏆 ${rec.date} 달성!`;
-    else if (done > 0)      cta.textContent = '이어서 도전하기 ▶';
+    else if (best > 0)      cta.textContent = '처음부터 다시 도전 ▶';
     else                    cta.textContent = '도전 시작하기 ▶';
 
     if (rec.completed){
@@ -467,12 +470,13 @@ function startMission(id){
   freezeMissionWords(m);                       // 단어 고정
   state.cat = 'words';
 
-  const solvedSet = new Set(rec.solved);
-  const queue = missionItems(id).filter(w => !solvedSet.has(w.en));
-  if (!queue.length){ finishMission(id); return; }
+  // ⚡ 항상 처음부터, 전체 단어를 한 번에
+  const queue = missionItems(id);
+  if (!queue.length) return;
 
   state.quiz = { mode:'w_write', items:queue, i:0, score:0,
-                 answered:false, newlyMastered:[], mission:id };
+                 answered:false, newlyMastered:[], mission:id,
+                 msDone:0, msFailed:false };
   renderQuestion();
   show('quiz');
 }
@@ -487,13 +491,33 @@ function updateMissionUI(){
   document.getElementById('quiz-bar').style.width = (total ? done/total*100 : 0) + '%';
 }
 
-/* 미션 정답 기록 */
+/* 미션 정답 (이번 판에서만 카운트, 최고 기록은 저장) */
 function missionSolve(en){
   const q = state.quiz;
   if (!q || !q.mission) return;
+  q.msDone = (q.msDone || 0) + 1;
   const rec = ensureEvent(q.mission);
-  if (!rec.solved.includes(en)){ rec.solved.push(en); saveEvents(); }
+  if (q.msDone > (rec.best || 0)){ rec.best = q.msDone; saveEvents(); }
   updateMissionUI();
+}
+
+/* 미션 실패: 하나라도 틀리면 처음부터 */
+function missionFail(){
+  const q = state.quiz;
+  if (!q || !q.mission) return;
+  const id = q.mission, reached = q.msDone || 0;
+  const rec = ensureEvent(id);
+  const total = missionTotal(id);
+  const wrongWord = q.items[q.i];
+
+  document.getElementById('fail-word').innerHTML =
+    '<b>' + (wrongWord ? wrongWord.en : '') + '</b> 에서 아쉽게 멈췄어요';
+  document.getElementById('fail-score').textContent = `이번엔 ${reached} / ${total} 개!`;
+  document.getElementById('fail-best').textContent  = `🏅 최고 기록: ${rec.best || 0}개`;
+  document.getElementById('fail-retry').onclick = ()=>startMission(id);
+
+  state.quiz = null;
+  show('missfail');
 }
 
 /* --- 미션 완료 → 상품권 --- */
@@ -502,6 +526,7 @@ function finishMission(id){
   const rec = ensureEvent(id);
   if (!rec.completed){
     rec.completed = true;
+    rec.best = missionTotal(id);
     rec.date = new Date().toLocaleDateString('ko-KR');
     saveEvents();
     addCoins(50);                       // 완주 보너스
@@ -810,8 +835,8 @@ function renderWrite(item, isSentence){
       input.classList.add('wrong'); onWrong();
       revealed = totalLetters; draw();               // 정답 글자 모두 보여주기
       speak(answer);
-      // 🎁 이벤트 중이면 틀린 단어를 뒤에 다시 넣어 한 번 더 만나게 함
-      if (state.quiz.mission) state.quiz.items.push(item);
+      // 🎁 이벤트 도전은 하나만 틀려도 실패 (다음 버튼을 누르면 실패 화면)
+      if (state.quiz.mission) state.quiz.msFailed = true;
       showExplain(input.value.trim());               // 내가 쓴 답 vs 정답 — 자동으로 안 넘어감
     }
   };
@@ -964,18 +989,14 @@ function clearExplain(){
 
 function nextQuestion(){
   const q=state.quiz;
+
+  // 🎁 이벤트 도전: 하나라도 틀렸으면 그 자리에서 실패
+  if (q.mission && q.msFailed){ missionFail(); return; }
+
   q.i++;
 
-  // 🎁 이벤트 도전: 목표를 다 채우면 상품권, 아니면 남은 단어 계속
   if (q.mission){
-    const rec = ensureEvent(q.mission);
-    if (missionSolved(q.mission) >= missionTotal(q.mission)){ finishMission(q.mission); return; }
-    if (q.i >= q.items.length){                       // 한 바퀴 다 돌았으면 못 맞힌 것만 다시
-      const solvedSet = new Set(rec.solved);
-      const rest = missionItems(q.mission).filter(w=>!solvedSet.has(w.en));
-      if (!rest.length){ finishMission(q.mission); return; }
-      q.items = rest; q.i = 0;
-    }
+    if (q.i >= q.items.length){ finishMission(q.mission); return; }   // 전부 맞힘 → 성공
     renderQuestion();
     return;
   }
@@ -1037,8 +1058,11 @@ function wire(){
     const t=b.dataset.go;
     if (t==='home') goHome();
     else if (t==='mode'){
-      // 이벤트 도전 중이면 이벤트 화면으로 (진행상황은 이미 저장돼 있음)
-      if (state.quiz && state.quiz.mission){ state.quiz=null; openEvent(); }
+      // 이벤트 도전 중에 나가면 처음부터 다시 해야 하므로 한 번 확인
+      if (state.quiz && state.quiz.mission){
+        if (!confirm('지금 그만두면 처음부터 다시 해야 해요.\n정말 그만할까요?')) return;
+        state.quiz=null; openEvent();
+      }
       else openMode(state.cat);
     }
     else if (t==='book') openBook();

@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <title>아라의 영어 놀이터 🐱</title>
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 
 <div id="app">
 
@@ -71,8 +71,26 @@
     <div class="mission-list" id="mission-list"></div>
 
     <p class="event-note">✏️ 모든 문제는 <b>영어로 직접 쓰기</b>예요.<br>
-      틀려도 괜찮아요 — 그 단어는 뒤에서 다시 나와요!<br>
-      중간에 그만둬도 <b>이어서</b> 할 수 있어요 💾</p>
+      ⚡ <b>한 번에 끝까지</b> 모두 맞혀야 성공!<br>
+      하나라도 틀리면 <b>처음부터</b> 다시 도전해요 💪</p>
+  </section>
+
+  <!-- 미션 실패 화면 -->
+  <section id="screen-missfail" class="screen">
+    <div class="fail-emoji">😢</div>
+    <h2 class="title small">아쉬워요!</h2>
+    <p class="fail-word" id="fail-word"></p>
+
+    <div class="fail-box">
+      <div class="fail-score" id="fail-score"></div>
+      <div class="fail-best" id="fail-best"></div>
+      <div class="fail-tip">처음부터 다시 도전하면 돼요.<br>다음엔 더 잘할 수 있어요! 🌈</div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-primary" id="fail-retry">다시 도전하기 🔁</button>
+      <button class="btn-secondary" data-go="event">이벤트로 🎁</button>
+    </div>
   </section>
 
   <!-- 상품 획득(쿠폰) 화면 -->
@@ -217,5 +235,5 @@
 
 <!-- ?v=숫자 는 캐시 무효화용. app.js / avatar.js / style.css 를 고칠 때마다 숫자를 올리세요. -->
 <script src="lib/xlsx.full.min.js"></script>
-<script src="avatar.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="avatar.js?v=7"></script>
+<script src="app.js?v=7"></script>

@@ -224,6 +224,16 @@ body{
   padding:7px 48px; box-shadow:0 3px 10px rgba(0,0,0,.2);
 }
 
+/* ===== 미션 실패 ===== */
+.fail-emoji{ font-size:66px; animation:shake .5s ease; }
+.fail-word{ font-size:20px; color:#a98ba6; margin:2px 0 14px; }
+.fail-word b{ font-family:'Baloo 2'; color:var(--bad); font-size:24px; }
+.fail-box{ background:#fff; border-radius:24px; padding:20px 26px; box-shadow:var(--shadow);
+  border:3px solid var(--pink-soft); max-width:360px; width:100%; }
+.fail-score{ font-family:'Jua'; font-size:28px; color:var(--pink); }
+.fail-best{ font-family:'Jua'; font-size:19px; color:var(--purple); margin-top:6px; }
+.fail-tip{ font-size:16px; color:#a98ba6; margin-top:12px; line-height:1.6; }
+
 /* ===== 상품권(쿠폰) ===== */
 .coupon-burst{ font-size:64px; animation:pop2 .7s ease; }
 @keyframes pop2{ 0%{transform:scale(0) rotate(-40deg);} 70%{transform:scale(1.35) rotate(10deg);} 100%{transform:scale(1);} }
