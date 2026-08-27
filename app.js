@@ -298,6 +298,7 @@ function goHome(){
   });
   updateStarUI();
   updateCoinUI();
+  updateEventBadge();
   refreshAvatars();
   show('home');
 }
@@ -340,6 +341,185 @@ function openBook(){
     total ? `전체 ${total}개 중 ${totalMastered}개 마스터! 🌸` : '데이터가 없어요';
   document.getElementById('book-stars').textContent = getStars();
   show('book');
+}
+
+/* ================= 🎁 이벤트 도전 ================= */
+/* 단어를 '직접 쓰기'로 맞혀서 상품을 받는 미션.
+   - 출제 단어는 고정(seed 기반 + 처음 시작할 때 저장) → 다음날도 같은 단어
+   - 진행상황 자동 저장 → 중간에 그만둬도 이어서
+   - 한 번 완료한 미션은 다시 못 함                                */
+const EVENT_KEY = 'englishPlayground_event_v1';
+const MISSIONS = [
+  { id:'m30',  count:30, seed:30303, ico:'🎮', cls:'m1',
+    prize:'게임 설치',           goal:'단어 30개를 영어로 쓰기' },
+  { id:'m50',  count:50, seed:50505, ico:'🏖️', cls:'m2',
+    prize:'공부 쉬는 날',        goal:'단어 50개를 영어로 쓰기' },
+  { id:'mAll', count:0,  seed:77777, ico:'📱', cls:'m3',
+    prize:'전화 되는 핸드폰',    goal:'모든 단어를 영어로 쓰기' },
+];
+
+let EVENTS = loadEvents();
+function loadEvents(){
+  try{
+    const e = JSON.parse(localStorage.getItem(EVENT_KEY));
+    if (e && typeof e === 'object') return e;
+  }catch(err){}
+  return {};
+}
+function saveEvents(){ try{ localStorage.setItem(EVENT_KEY, JSON.stringify(EVENTS)); }catch(e){} }
+function ensureEvent(id){
+  if (!EVENTS[id]) EVENTS[id] = { words:null, solved:[], completed:false, date:null };
+  return EVENTS[id];
+}
+
+/* 씨앗값 기반 섞기 → 언제 실행해도 순서가 같음 (고정 단어) */
+function seededShuffle(arr, seed){
+  const a = arr.slice();
+  let s = seed >>> 0;
+  const rnd = ()=>{ s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i=a.length-1; i>0; i--){ const j = Math.floor(rnd()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function missionWordList(m){
+  const all = DATA.words.map(w=>w.en);
+  const mixed = seededShuffle(all, m.seed);
+  return (!m.count || m.count >= all.length) ? mixed : mixed.slice(0, m.count);
+}
+/* 처음 시작할 때 단어를 저장해서 완전히 고정 */
+function freezeMissionWords(m){
+  const rec = ensureEvent(m.id);
+  if (!rec.words || !rec.words.length){ rec.words = missionWordList(m); saveEvents(); }
+  return rec.words;
+}
+/* 엑셀에서 단어가 지워졌을 수도 있으니, 지금 존재하는 것만 사용 */
+function missionItems(id){
+  const rec = ensureEvent(id);
+  const src = (rec.words && rec.words.length) ? rec.words
+            : missionWordList(MISSIONS.find(x=>x.id===id));
+  return src.map(en => DATA.words.find(w => w.en === en)).filter(Boolean);
+}
+function missionTotal(id){ return missionItems(id).length; }
+function missionSolved(id){
+  const rec = ensureEvent(id);
+  const exist = new Set(missionItems(id).map(w=>w.en));
+  return rec.solved.filter(en => exist.has(en)).length;
+}
+
+/* --- 이벤트 화면 --- */
+function openEvent(){
+  document.getElementById('event-coins').textContent = getCoins();
+  const box = document.getElementById('mission-list');
+  box.innerHTML = '';
+
+  MISSIONS.forEach(m=>{
+    const rec = ensureEvent(m.id);
+    const total = missionTotal(m.id);
+    const done  = missionSolved(m.id);
+    const pct   = total ? Math.round(done/total*100) : 0;
+
+    const card = document.createElement('button');
+    card.className = 'mission-card ' + m.cls + (rec.completed ? ' done' : '');
+    card.innerHTML =
+      `<span class="m-ico">${m.ico}</span>
+       <span class="m-body">
+         <span class="m-goal"></span>
+         <span class="m-prize"></span>
+         <span class="mission-bar"><div></div></span>
+         <span class="m-num"></span>
+         <span class="m-cta"></span>
+       </span>`;
+    card.querySelector('.m-goal').textContent  = m.goal;
+    card.querySelector('.m-prize').textContent = '🎁 ' + m.prize;
+    card.querySelector('.mission-bar > div').style.width = pct + '%';
+    card.querySelector('.m-num').textContent   = `${done} / ${total}  (${pct}%)`;
+    const cta = card.querySelector('.m-cta');
+    if (rec.completed)      cta.textContent = `🏆 ${rec.date} 달성!`;
+    else if (done > 0)      cta.textContent = '이어서 도전하기 ▶';
+    else                    cta.textContent = '도전 시작하기 ▶';
+
+    if (rec.completed){
+      card.disabled = true;
+      card.onclick = null;
+    } else {
+      card.onclick = ()=>startMission(m.id);
+    }
+    box.appendChild(card);
+  });
+
+  show('event');
+}
+
+/* 홈 버튼의 작은 배지 */
+function updateEventBadge(){
+  const el = document.getElementById('event-badge');
+  if (!el) return;
+  const total = MISSIONS.length;
+  const done  = MISSIONS.filter(m=>ensureEvent(m.id).completed).length;
+  el.textContent = done ? `🏆 ${done}/${total}` : '상품이 기다려요!';
+}
+
+/* --- 미션 시작 --- */
+function startMission(id){
+  const m = MISSIONS.find(x=>x.id===id);
+  const rec = ensureEvent(id);
+  if (rec.completed) return;
+
+  freezeMissionWords(m);                       // 단어 고정
+  state.cat = 'words';
+
+  const solvedSet = new Set(rec.solved);
+  const queue = missionItems(id).filter(w => !solvedSet.has(w.en));
+  if (!queue.length){ finishMission(id); return; }
+
+  state.quiz = { mode:'w_write', items:queue, i:0, score:0,
+                 answered:false, newlyMastered:[], mission:id };
+  renderQuestion();
+  show('quiz');
+}
+
+function updateMissionUI(){
+  const q = state.quiz;
+  const el = document.getElementById('quiz-mission');
+  if (!q || !q.mission){ el.className = 'event-progress'; return; }
+  const total = missionTotal(q.mission), done = missionSolved(q.mission);
+  el.className = 'event-progress show';
+  el.textContent = `🎁 ${done}/${total}`;
+  document.getElementById('quiz-bar').style.width = (total ? done/total*100 : 0) + '%';
+}
+
+/* 미션 정답 기록 */
+function missionSolve(en){
+  const q = state.quiz;
+  if (!q || !q.mission) return;
+  const rec = ensureEvent(q.mission);
+  if (!rec.solved.includes(en)){ rec.solved.push(en); saveEvents(); }
+  updateMissionUI();
+}
+
+/* --- 미션 완료 → 상품권 --- */
+function finishMission(id){
+  const m = MISSIONS.find(x=>x.id===id);
+  const rec = ensureEvent(id);
+  if (!rec.completed){
+    rec.completed = true;
+    rec.date = new Date().toLocaleDateString('ko-KR');
+    saveEvents();
+    addCoins(50);                       // 완주 보너스
+  }
+  state.quiz = null;
+  showCoupon(m, rec);
+}
+function showCoupon(m, rec){
+  document.getElementById('coupon-emoji').textContent = m.ico;
+  document.getElementById('coupon-prize').textContent = m.prize;
+  document.getElementById('coupon-mission').textContent = m.goal + ' 성공!';
+  document.getElementById('coupon-date').textContent = '달성일: ' + (rec.date || '');
+  document.getElementById('coupon-title').textContent = pick(['미션 성공! 🎉','대단해요! 🏆','해냈어요! ✨']);
+  show('coupon');
+  bigConfetti();
+  setTimeout(bigConfetti, 700);
+  setTimeout(bigConfetti, 1400);
+  speak('You did it! Congratulations!');
 }
 
 /* ================= 모드 선택 ================= */
@@ -571,6 +751,15 @@ function renderQuestion(){
       break;
     }
   }
+
+  // 🎁 이벤트 도전 중이면 안내문과 진행바를 미션 기준으로 바꿔줌
+  if (q.mission){
+    const m = MISSIONS.find(x=>x.id===q.mission);
+    instr.textContent = `${m.ico} ${m.prize} 도전 중!`;
+    updateMissionUI();
+  } else {
+    document.getElementById('quiz-mission').className = 'event-progress';
+  }
 }
 
 /* --- 쓰기(타이핑) 문제 렌더링 --- */
@@ -627,6 +816,8 @@ function renderWrite(item, isSentence){
       input.classList.add('wrong'); onWrong();
       revealed = totalLetters; draw();               // 정답 글자 모두 보여주기
       speak(answer);
+      // 🎁 이벤트 중이면 틀린 단어를 뒤에 다시 넣어 한 번 더 만나게 함
+      if (state.quiz.mission) state.quiz.items.push(item);
       showExplain(input.value.trim());               // 내가 쓴 답 vs 정답 — 자동으로 안 넘어감
     }
   };
@@ -726,6 +917,7 @@ function onCorrect(){
   setQuizFace('celebrate');
 
   const item = state.quiz.items[state.quiz.i];
+  missionSolve(item.en);               // 🎁 이벤트 진행 저장
   const res = record(state.cat, item.en, true);
   if (res.newlyMastered){
     state.quiz.newlyMastered.push(item.en);
@@ -779,6 +971,21 @@ function clearExplain(){
 function nextQuestion(){
   const q=state.quiz;
   q.i++;
+
+  // 🎁 이벤트 도전: 목표를 다 채우면 상품권, 아니면 남은 단어 계속
+  if (q.mission){
+    const rec = ensureEvent(q.mission);
+    if (missionSolved(q.mission) >= missionTotal(q.mission)){ finishMission(q.mission); return; }
+    if (q.i >= q.items.length){                       // 한 바퀴 다 돌았으면 못 맞힌 것만 다시
+      const solvedSet = new Set(rec.solved);
+      const rest = missionItems(q.mission).filter(w=>!solvedSet.has(w.en));
+      if (!rest.length){ finishMission(q.mission); return; }
+      q.items = rest; q.i = 0;
+    }
+    renderQuestion();
+    return;
+  }
+
   if (q.i >= q.items.length){ showResult(); return; }
   renderQuestion();
 }
@@ -835,9 +1042,14 @@ function wire(){
   document.querySelectorAll('[data-go]').forEach(b=> b.onclick=()=>{
     const t=b.dataset.go;
     if (t==='home') goHome();
-    else if (t==='mode') openMode(state.cat);
+    else if (t==='mode'){
+      // 이벤트 도전 중이면 이벤트 화면으로 (진행상황은 이미 저장돼 있음)
+      if (state.quiz && state.quiz.mission){ state.quiz=null; openEvent(); }
+      else openMode(state.cat);
+    }
     else if (t==='book') openBook();
     else if (t==='avatar') openAvatar();
+    else if (t==='event') openEvent();
   });
 
   // 오답 해설 후 '다음' 버튼

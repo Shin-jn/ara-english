@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <title>아라의 영어 놀이터 🐱</title>
-<link rel="stylesheet" href="style.css?v=4" />
+<link rel="stylesheet" href="style.css?v=5" />
 
 <div id="app">
 
@@ -46,9 +46,58 @@
       </button>
     </div>
 
+    <button class="btn-event" data-go="event">
+      <span class="ev-spark">🎁</span>
+      <span class="ev-txt">이벤트 도전!</span>
+      <span class="ev-sub" id="event-badge"></span>
+    </button>
+
     <div class="home-btn-row">
       <button class="btn-book" data-go="book">📚 단어 도감</button>
       <button class="btn-book dress" data-go="avatar">🎀 아바타 꾸미기</button>
+    </div>
+  </section>
+
+  <!-- 이벤트 도전 화면 -->
+  <section id="screen-event" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-go="home">← 뒤로</button>
+      <div class="coin-counter">🪙 <span id="event-coins">0</span></div>
+    </div>
+
+    <h2 class="title small">🎁 이벤트 도전</h2>
+    <p class="subtitle">단어를 <b>직접 써서</b> 맞히면 상품을 받아요!</p>
+
+    <div class="mission-list" id="mission-list"></div>
+
+    <p class="event-note">✏️ 모든 문제는 <b>영어로 직접 쓰기</b>예요.<br>
+      틀려도 괜찮아요 — 그 단어는 뒤에서 다시 나와요!<br>
+      중간에 그만둬도 <b>이어서</b> 할 수 있어요 💾</p>
+  </section>
+
+  <!-- 상품 획득(쿠폰) 화면 -->
+  <section id="screen-coupon" class="screen">
+    <div class="coupon-burst">🎉</div>
+    <h2 class="title" id="coupon-title">미션 성공!</h2>
+
+    <div class="coupon" id="coupon-card">
+      <div class="coupon-top">
+        <span class="coupon-label">🎫 상품권</span>
+      </div>
+      <div class="coupon-emoji" id="coupon-emoji">🎮</div>
+      <div class="coupon-prize" id="coupon-prize"></div>
+      <div class="coupon-line"></div>
+      <div class="coupon-meta">
+        <div id="coupon-mission"></div>
+        <div id="coupon-date"></div>
+      </div>
+      <div class="coupon-owner">아라 어린이 🌟</div>
+    </div>
+
+    <p class="coupon-hint">이 화면을 <b>엄마·아빠에게 보여주세요!</b> 📱</p>
+
+    <div class="nav-row">
+      <button class="btn-primary" data-go="event">이벤트로 돌아가기 🎁</button>
     </div>
   </section>
 
@@ -128,6 +177,7 @@
     <div class="topbar">
       <button class="btn-back" data-go="mode">← 그만</button>
       <div class="quiz-progress"><div class="quiz-progress-bar" id="quiz-bar"></div></div>
+      <div class="event-progress" id="quiz-mission"></div>
       <div class="star-counter small">⭐ <span id="quiz-score">0</span></div>
     </div>
 
@@ -167,5 +217,5 @@
 
 <!-- ?v=숫자 는 캐시 무효화용. app.js / avatar.js / style.css 를 고칠 때마다 숫자를 올리세요. -->
 <script src="lib/xlsx.full.min.js"></script>
-<script src="avatar.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="avatar.js?v=5"></script>
+<script src="app.js?v=5"></script>
