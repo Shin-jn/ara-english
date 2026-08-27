@@ -812,8 +812,19 @@ function renderWrite(item, isSentence){
 
   const input = document.createElement('input');
   input.type = 'text'; input.className = 'write-input';
-  input.autocomplete = 'off'; input.autocapitalize = 'off'; input.spellcheck = false;
   input.setAttribute('lang','en');
+  // ---- 키보드 자동완성/예측입력 차단 ----
+  input.autocomplete = 'off';            // 이전에 입력한 값 목록 끄기
+  input.autocapitalize = 'off';          // 첫 글자 자동 대문자 끄기
+  input.spellcheck = false;              // 맞춤법 추천 끄기
+  input.setAttribute('autocorrect','off');           // 자동 수정 (사파리)
+  input.setAttribute('writingsuggestions','false');  // 예측 문구 (크롬 121+/사파리 18+)
+  input.setAttribute('data-lpignore','true');        // 비밀번호 관리자 무시
+  input.setAttribute('data-1p-ignore','');
+  input.setAttribute('data-form-type','other');
+  // 이름을 매번 다르게 → 브라우저가 '예전에 쓴 답'을 기억해 추천하지 못하게
+  input.name = 'w' + Math.random().toString(36).slice(2, 10);
+  input.id = input.name;
   input.placeholder = isSentence ? '여기에 영어 문장을 써요' : '여기에 영어로 써요';
 
   const btns = document.createElement('div'); btns.className = 'write-buttons';
