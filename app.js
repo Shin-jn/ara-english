@@ -350,12 +350,16 @@ function openBook(){
    - 최고 기록만 저장해 다시 도전할 의욕을 줌
    - 한 번 완료한 미션은 다시 못 함                                */
 const EVENT_KEY = 'englishPlayground_event_v2';
+/* 한 번만 섞어서 구간을 나눠 쓰므로 30개 미션과 50개 미션의 단어가 겹치지 않음
+   (0~29번째 = 30개 미션, 30~79번째 = 50개 미션) */
+const EVENT_SEED = 20260827;
+const WORDS_VER  = 2;              // 단어 뽑는 규칙 버전 (바뀌면 다시 뽑음)
 const MISSIONS = [
-  { id:'m30',  count:30, seed:30303, ico:'🎮', cls:'m1',
+  { id:'m30',  count:30, offset:0,  ico:'🎮', cls:'m1',
     prize:'게임 설치',           goal:'단어 30개를 영어로 쓰기' },
-  { id:'m50',  count:50, seed:50505, ico:'🏖️', cls:'m2',
+  { id:'m50',  count:50, offset:30, ico:'🏖️', cls:'m2',
     prize:'공부 쉬는 날',        goal:'단어 50개를 영어로 쓰기' },
-  { id:'mAll', count:0,  seed:77777, ico:'📱', cls:'m3',
+  { id:'mAll', count:0,  offset:0,  ico:'📱', cls:'m3',
     prize:'전화 되는 핸드폰',    goal:'모든 단어를 영어로 쓰기' },
 ];
 
@@ -369,9 +373,13 @@ function loadEvents(){
 }
 function saveEvents(){ try{ localStorage.setItem(EVENT_KEY, JSON.stringify(EVENTS)); }catch(e){} }
 function ensureEvent(id){
-  if (!EVENTS[id]) EVENTS[id] = { words:null, best:0, completed:false, date:null };
-  if (typeof EVENTS[id].best !== 'number') EVENTS[id].best = 0;
-  return EVENTS[id];
+  if (!EVENTS[id]) EVENTS[id] = { words:null, best:0, completed:false, date:null, wv:WORDS_VER };
+  const r = EVENTS[id];
+  if (typeof r.best !== 'number') r.best = 0;
+  if (r.wv !== WORDS_VER){        // 단어 뽑는 규칙이 바뀌면 다시 뽑되, 기록은 그대로 둠
+    r.words = null; r.wv = WORDS_VER; saveEvents();
+  }
+  return r;
 }
 
 /* 씨앗값 기반 섞기 → 언제 실행해도 순서가 같음 (고정 단어) */
@@ -384,8 +392,10 @@ function seededShuffle(arr, seed){
 }
 function missionWordList(m){
   const all = DATA.words.map(w=>w.en);
-  const mixed = seededShuffle(all, m.seed);
-  return (!m.count || m.count >= all.length) ? mixed : mixed.slice(0, m.count);
+  const mixed = seededShuffle(all, EVENT_SEED);
+  if (!m.count || m.count >= all.length) return mixed;        // '모든 단어' 미션
+  const start = Math.min(m.offset || 0, Math.max(0, all.length - m.count));
+  return mixed.slice(start, start + m.count);
 }
 /* 처음 시작할 때 단어를 저장해서 완전히 고정 */
 function freezeMissionWords(m){
@@ -434,18 +444,14 @@ function openEvent(){
     card.querySelector('.m-prize').textContent = '🎁 ' + m.prize;
     card.querySelector('.mission-bar > div').style.width = pct + '%';
     card.querySelector('.m-num').textContent   =
-      rec.completed ? `${total} / ${total} 완주!` : `최고 기록 ${best} / ${total}`;
+      rec.completed ? `${total} / ${total} 완주!  (성공 ${rec.clears || 1}번)`
+                    : `최고 기록 ${best} / ${total}`;
     const cta = card.querySelector('.m-cta');
-    if (rec.completed)      cta.textContent = `🏆 ${rec.date} 달성!`;
+    if (rec.completed)      cta.textContent = `🏆 ${rec.date} 달성! · 또 도전 ▶`;
     else if (best > 0)      cta.textContent = '처음부터 다시 도전 ▶';
     else                    cta.textContent = '도전 시작하기 ▶';
 
-    if (rec.completed){
-      card.disabled = true;
-      card.onclick = null;
-    } else {
-      card.onclick = ()=>startMission(m.id);
-    }
+    card.onclick = ()=>startMission(m.id);   // 완료했어도 다시 도전 가능
     box.appendChild(card);
   });
 
@@ -465,7 +471,6 @@ function updateEventBadge(){
 function startMission(id){
   const m = MISSIONS.find(x=>x.id===id);
   const rec = ensureEvent(id);
-  if (rec.completed) return;
 
   freezeMissionWords(m);                       // 단어 고정
   state.cat = 'words';
@@ -524,22 +529,28 @@ function missionFail(){
 function finishMission(id){
   const m = MISSIONS.find(x=>x.id===id);
   const rec = ensureEvent(id);
-  if (!rec.completed){
-    rec.completed = true;
-    rec.best = missionTotal(id);
-    rec.date = new Date().toLocaleDateString('ko-KR');
-    saveEvents();
-    addCoins(50);                       // 완주 보너스
-  }
+  const first = !rec.completed;
+  rec.completed = true;
+  rec.best = missionTotal(id);
+  rec.clears = (rec.clears || 0) + 1;
+  if (first) rec.date = new Date().toLocaleDateString('ko-KR');  // 첫 달성일은 그대로 보존
+  rec.lastDate = new Date().toLocaleDateString('ko-KR');
+  saveEvents();
+  addCoins(first ? 50 : 15);            // 첫 성공 50, 다시 성공 15
   state.quiz = null;
-  showCoupon(m, rec);
+  showCoupon(m, rec, first);
 }
-function showCoupon(m, rec){
+function showCoupon(m, rec, first){
+  const clears = rec.clears || 1;
   document.getElementById('coupon-emoji').textContent = m.ico;
   document.getElementById('coupon-prize').textContent = m.prize;
-  document.getElementById('coupon-mission').textContent = m.goal + ' 성공!';
-  document.getElementById('coupon-date').textContent = '달성일: ' + (rec.date || '');
-  document.getElementById('coupon-title').textContent = pick(['미션 성공! 🎉','대단해요! 🏆','해냈어요! ✨']);
+  document.getElementById('coupon-mission').textContent =
+    m.goal + (clears > 1 ? ` · ${clears}번째 성공!` : ' 성공!');
+  document.getElementById('coupon-date').textContent =
+    '달성일: ' + (rec.lastDate || rec.date || '') + (clears > 1 ? ` (첫 달성 ${rec.date})` : '');
+  document.getElementById('coupon-title').textContent = first
+    ? pick(['미션 성공! 🎉','대단해요! 🏆','해냈어요! ✨'])
+    : pick([`${clears}번째 성공! 🎉`,'또 해냈어요! 🏆','역시 최고! ✨']);
   show('coupon');
   bigConfetti();
   setTimeout(bigConfetti, 700);

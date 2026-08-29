@@ -217,9 +217,9 @@ body{
 .mission-card .m-cta{ font-size:17px; background:rgba(255,255,255,.28); padding:4px 14px; border-radius:999px; display:inline-block; margin-top:7px; }
 
 /* 완료 도장 */
-.mission-card.done{ filter:saturate(.55) brightness(.97); cursor:default; }
+.mission-card.done{ cursor:pointer; }   /* 완료해도 다시 도전 가능 */
 .mission-card.done::after{
-  content:'🏆 완료!'; position:absolute; right:-40px; top:16px; transform:rotate(18deg);
+  content:'🏆 달성!'; position:absolute; right:-40px; top:16px; transform:rotate(18deg);
   background:#fff; color:#e0568f; font-family:'Jua'; font-size:19px;
   padding:7px 48px; box-shadow:0 3px 10px rgba(0,0,0,.2);
 }
